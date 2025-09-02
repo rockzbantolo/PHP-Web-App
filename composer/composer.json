@@ -1,0 +1,19 @@
+{
+    "name": "rocky/mws",
+    "description": "MWS API project",
+    "type": "project",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Mws\\Controllers\\": "../controllers/",
+            "Mws\\Core\\": "../core/",
+            "Mws\\Helpers\\": "../helpers/",
+            "Mws\\Middleware\\": "../middleware/",
+            "Mws\\Models\\": "../models/",
+            "Mws\\Router\\": "../router/"
+        }
+    },
+    "require": {
+      "vlucas/phpdotenv": "^5.6"
+    }
+}

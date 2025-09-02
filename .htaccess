@@ -1,0 +1,27 @@
+# Enable mod_rewrite
+RewriteEngine On
+RewriteBase /Mws/
+
+# Preserve Authorization header (your existing rule)
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule ^(.*)$ - [E=HTTP_AUTHORIZATION:%1]
+
+# Redirect trailing slash (optional)
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.+)/$ /$1 [R=301,L]
+
+# Prevent rewriting real files or directories
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Route everything to App.php
+RewriteRule ^(.*)$ App.php/$1 [L]
+
+# Custom clean URLs mapping
+# RewriteRule ^Login$ public/pages/Login.html [L]
+# RewriteRule ^Dashboard$ public/pages/Dashboard.html [L]
+# RewriteRule ^Register$ public/pages/Register.html [L]
+# Add more routes as needed
+
+# Optional: fallback to index.html or router.php
+# RewriteRule ^.*$ index.html [L]
