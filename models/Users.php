@@ -1,5 +1,4 @@
 <?php
-//require_once 'core/Database.php';
 namespace Mws\Models;
 
 use Mws\Core\Database;
@@ -15,9 +14,8 @@ class Users {
         $this->conn = $db->connect();
     }
 
-    /** Get all users */
-    public function getAllUsers($page = 1, $limit = 10)
-    {
+    /** USERS */
+    public function findAllUsers($page = 1, $limit = 10) {
         $offset = ($page - 1) * $limit;
 
         $stmt = $this->conn->prepare("
@@ -48,16 +46,14 @@ class Users {
         return $users;
     }
 
-    /** Get user by ID */
-    public function getById($id) {
+    public function findUserById($id) {
         $stmt = $this->conn->prepare("SELECT * FROM users WHERE UserID = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
         return $stmt->get_result()->fetch_assoc();
     }
 
-    /** Get user by username */
-    public function getByUsername($username) {
+    public function findByUsername($username) {
         $stmt = $this->conn->prepare("
             SELECT 
                 u.UserID,
@@ -77,8 +73,7 @@ class Users {
         return $stmt->get_result()->fetch_assoc();
     }
 
-    /** Create new user */
-    public function create($data) {
+    public function createUser($data) {
         try {
             if (!isset($data['username'], $data['password_hash'], $data['email'])) {
                 throw new Exception("Required fields missing");
@@ -98,9 +93,7 @@ class Users {
         }
     }
 
-    /** Update user info */
-    public function update($id, $data)
-    {
+    public function updateUser($id, $data) {
         if (empty($data)) {
             return ['success' => false, 'error' => 'No fields to update'];
         }
@@ -150,11 +143,12 @@ class Users {
         }
     }
 
-    /** Delete user */
-    public function delete($id) {
+    public function deleteUser($id) {
         $stmt = $this->conn->prepare("DELETE FROM users WHERE UserID = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
         return ['success' => $stmt->affected_rows > 0];
     }
+
+
 }

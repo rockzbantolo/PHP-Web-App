@@ -10,7 +10,7 @@ use Mws\Router\Routes;
 
 Env::InitEnv('./.env');
 Cors::InitCors();
-Auth::InitAuth();
+Auth::InitApiKeyAuth();
 
 // Initialize router
 [$router, $method, $path] = Request::initRouter();

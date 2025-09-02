@@ -1,6 +1,5 @@
 <?php
-//require_once 'models/Users.php';
-//require_once 'helpers/Jsonresp.php';
+
 namespace Mws\Controllers;
 
 use Mws\Models\Users;
@@ -11,8 +10,7 @@ class UserController
 {
     private Users $userModel;
 
-    public function __construct()
-    {
+    public function __construct() {
         $this->userModel = new Users();
     }
 
@@ -24,13 +22,13 @@ class UserController
         // User Management
         $router->register('GET', '/Users', [self::class, 'getAllUsers']);
         $router->register('GET', '/Users/{id}', [self::class, 'getUserById']);
-        $router->register('POST', '/Users', [self::class, 'createUser']);
+        $router->register('POST', '/Users', [self::class, 'saveUser']);
         $router->register('PUT', '/Users', [self::class, 'updateUsers']);
         $router->register('DELETE', '/Users', [self::class, 'deleteUsers']);
     }
 
-    public function login($data)
-    {
+    /** USERS */
+    public function login($data) {
         try {
             $username = $data['username'] ?? null;
             $password = $data['password'] ?? null;
@@ -39,7 +37,7 @@ class UserController
                 return Response::unauthorized("Invalid credentials");
             }
 
-            $user = $this->userModel->getByUsername($username);
+            $user = $this->userModel->findByUsername($username);
 
             if (!$user) {
                 return Response::notFound("User not found");
@@ -66,13 +64,12 @@ class UserController
         }
     }
 
-    public function getAllUsers($params)
-    {
+    public function getAllUsers($params) {
         try {
             $page = isset($params['page']) ? (int)$params['page'] : 1;
             $limit = isset($params['limit']) ? (int)$params['limit'] : 10;
 
-            $users = $this->userModel->getAllUsers($page, $limit);
+            $users = $this->userModel->findAllUsers($page, $limit);
 
             return Response::success($users, "Users retrieved successfully");
         } catch (Throwable $e) {
@@ -80,10 +77,9 @@ class UserController
         }
     }
 
-    public function getUserById($id)
-    {
+    public function getUserById($id) {
         try {
-            $user = $this->userModel->getById($id);
+            $user = $this->userModel->findUserById($id);
             return $user
                 ? Response::success($user, "User found")
                 : Response::notFound("User with ID $id not found");
@@ -92,12 +88,11 @@ class UserController
         }
     }
 
-    public function createUser($data)
-    {
+    public function saveUser($data) {
         try {
  
             // Check if username already exists
-            $existingUser = $this->userModel->getByUsername($data['username']);
+            $existingUser = $this->userModel->findByUsername($data['username']);
             if ($existingUser) {
                 return Response::error("Username already taken", 409); // 409 Conflict
             }
@@ -106,7 +101,7 @@ class UserController
             $data['password_hash'] = password_hash($data['password'], PASSWORD_BCRYPT);
             unset($data['password']);
 
-            $result = $this->userModel->create($data);
+            $result = $this->userModel->createUser($data);
 
             return $result['success']
                 ? Response::success(['id' => $result['id']], "User created successfully")
@@ -122,17 +117,17 @@ class UserController
 
             if (isset($data['id'])) {
                 // Handle single update
-                $result = $this->userModel->update($data['id'], $data);
-                return Response::success($result, "User updated successfully");
+                $result = $this->userModel->updateUser($data['id'], $data);
+                return Response::success([], "User updated successfully");
             }
 
             if (is_array($data)) {
                 // Handle batch update
                 $results = [];
                 foreach ($data as $item) {
-                    $results[] = $this->userModel->update($item['id'], $item);
+                    $results[] = $this->userModel->updateUser($item['id'], $item);
                 }
-                return Response::success($results, "Batch Update complete");
+                return Response::success([], "Batch Update complete");
             }
 
             return Response::error("Invalid update data", 400);
@@ -141,12 +136,11 @@ class UserController
         }
     }
 
-    public function deleteUsers($data)
-    {
+    public function deleteUsers($data) {
         try {
             // Single delete
             if (isset($data['id'])) {
-                $result = $this->userModel->delete($data['id']);
+                $result = $this->userModel->deleteUser($data['id']);
                 return Response::success($result, "User deleted successfully");
             }
 
@@ -155,10 +149,10 @@ class UserController
                 $results = [];
                 foreach ($data as $item) {
                     if (isset($item['id'])) {
-                        $results[] = $this->userModel->delete($item['id']);
+                        $results[] = $this->userModel->deleteUser($item['id']);
                     }
                 }
-                return Response::success($results, "Batch delete complete");
+                return Response::success([], "Batch delete complete");
             }
 
             return Response::error("Invalid delete data", 400);

@@ -7,8 +7,9 @@ class Auth
 {
     private static string $validUser = 'Rockz';
     private static string $validPass = '122190';
+    private static string $validApiKey = '1234567890abcdef';
 
-    public static function InitAuth(): void
+    public static function InitBasicAuth(): void
     {
         // For Apache fallback if PHP_AUTH_USER is not set
         if (!isset($_SERVER['PHP_AUTH_USER'])) {
@@ -30,6 +31,18 @@ class Auth
             header('WWW-Authenticate: Basic realm="MWS API"');
             Response::error("Authentication failed", 401);
             exit; // Make sure script stops after failed auth
+        }
+    }
+
+    // API Key Authentication
+    public static function InitApiKeyAuth(): void
+    {
+        $headers = getallheaders();
+        $apiKey = $headers['MWS-API-KEY'] ?? null;
+
+        if ($apiKey !== self::$validApiKey) {
+            Response::error("Invalid API Key", 401);
+            exit;
         }
     }
 }
