@@ -6,7 +6,7 @@ use Mws\Middleware\Cors;
 use Mws\Helpers\Env;
 use Mws\Helpers\Response;
 use Mws\Helpers\Request;
-use Mws\Router\Routes;
+use Mws\Core\Routes;
 
 Env::InitEnv('./.env');
 Cors::InitCors();
@@ -16,7 +16,7 @@ Auth::InitApiKeyAuth();
 [$router, $method, $path] = Request::initRouter();
 
 // Load routes
-Routes::setRoutes($router);
+Routes::initRoutes($router);
 
 // Resolve request
 try {

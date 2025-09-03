@@ -17,7 +17,7 @@ RewriteCond %{REQUEST_FILENAME} !-d
 # Route everything to App.php
 RewriteRule ^(.*)$ App.php/$1 [L]
 
-# Custom clean URLs mapping
+# Custom clean URLs mapping for Html Pages
 # RewriteRule ^Login$ public/pages/Login.html [L]
 # RewriteRule ^Dashboard$ public/pages/Dashboard.html [L]
 # RewriteRule ^Register$ public/pages/Register.html [L]

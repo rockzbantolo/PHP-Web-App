@@ -9,8 +9,7 @@
             "Mws\\Core\\": "../core/",
             "Mws\\Helpers\\": "../helpers/",
             "Mws\\Middleware\\": "../middleware/",
-            "Mws\\Models\\": "../models/",
-            "Mws\\Router\\": "../router/"
+            "Mws\\Models\\": "../models/"
         }
     },
     "require": {

@@ -1,51 +1,63 @@
 <?php
 namespace Mws\Models;
 
-use Mws\Core\Database;
+use Mws\Core\Connection;
 use Exception;
 
 class Roles {
 
-    private $conn;
-
-    public function __construct() {
-        $db = new Database();
-        $this->conn = $db->connect();
-    }
-
     public function findAllRoles() {
-        $stmt = $this->conn->prepare("SELECT * FROM roles");
-        $stmt->bind_param("i", $id);
+        $conn = Connection::getInstance();
+        $stmt = $conn->prepare("SELECT * FROM stores");
         $stmt->execute();
-        return $stmt->get_result()->fetch_assoc();
+        $result = $stmt->get_result();
+        $store = $result->fetch_assoc();
+        $result->free();
+        $stmt->close();
+        Connection::releaseConnection($conn);
+        return $store;
     }
 
     public function findRoleById($id) {
-        $stmt = $this->conn->prepare("SELECT * FROM roles WHERE RoleID = ?");
+        $conn = Connection::getInstance();
+        $stmt = $conn->prepare("SELECT * FROM roles WHERE RoleID = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
-        return $stmt->get_result()->fetch_assoc();
+        $result = $stmt->get_result();
+        $store = $result->fetch_assoc();
+        $result->free();
+        $stmt->close();
+        Connection::releaseConnection($conn);
+        return $store;
     }
 
     public function createRole($data) {
-        try {
-            if (!isset($data['RoleName'], $data['Descriptions'])) {
-                throw new Exception("Required fields missing");
-            }
 
-            $stmt = $this->conn->prepare(
-                "INSERT INTO roles (RoleName, Description)
-                    VALUES (?, ?)"
-            );
-            
-            $stmt->bind_param("sss", $data['RoleName'], $data['Descriptions']);
-            $stmt->execute();
-            $insertId = $stmt->insert_id;
+        $conn = Connection::getInstance();
 
-            return ['success' => true, 'id' => $insertId];
-        } catch (Exception $e) {
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
+        $stmt = $conn->prepare("
+            INSERT INTO stores
+            (StoreCode, StoreName, StoreAddress, Code, ContactPerson, ContactNum, Email, CreatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+        ");
+
+        $stmt->bind_param(
+            "sssssss",
+            $data['StoreCode'],
+            $data['StoreName'],
+            $data['StoreAddress'],
+            $data['Code'],
+            $data['ContactPerson'],
+            $data['ContactNum'],
+            $data['Email']
+        );
+
+        $success = $stmt->execute();
+        $stmt->close();
+
+        Connection::releaseConnection($conn);
+
+        return $success;
     }
 
 }

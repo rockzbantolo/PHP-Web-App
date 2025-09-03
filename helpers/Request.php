@@ -1,7 +1,7 @@
 <?php
 namespace Mws\Helpers;
 
-use Mws\Core\Https;
+use Mws\Core\Router;
 
 class Request
 {
@@ -12,7 +12,7 @@ class Request
      */
     public static function initRouter(): array
     {
-        $router = new Https();
+        $router = new Router();
         $method = $_SERVER['REQUEST_METHOD'];
         $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 

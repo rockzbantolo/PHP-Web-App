@@ -3,9 +3,10 @@ namespace Mws\Controllers;
 
 use Mws\Models\Roles;
 use Mws\Helpers\Response;
+use Mws\Core\RouteControllerInterface;
 use Throwable;
 
-class RoleController
+class RoleController implements RouteControllerInterface
 {
     private Roles $roleModel;
 

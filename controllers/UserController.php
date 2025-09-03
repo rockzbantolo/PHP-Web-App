@@ -4,9 +4,11 @@ namespace Mws\Controllers;
 
 use Mws\Models\Users;
 use Mws\Helpers\Response;
+use Mws\Core\StatusCode;
+use Mws\Core\RouteControllerInterface;
 use Throwable;
 
-class UserController
+class UserController implements RouteControllerInterface
 {
     private Users $userModel;
 
@@ -19,12 +21,17 @@ class UserController
         // Authentication
         $router->register('POST', '/Login', [self::class, 'login']);
 
-        // User Management
+        // User Management (single)
         $router->register('GET', '/Users', [self::class, 'getAllUsers']);
         $router->register('GET', '/Users/{id}', [self::class, 'getUserById']);
         $router->register('POST', '/Users', [self::class, 'saveUser']);
-        $router->register('PUT', '/Users', [self::class, 'updateUsers']);
-        $router->register('DELETE', '/Users', [self::class, 'deleteUsers']);
+        $router->register('PUT', '/Users/{id}', [self::class, 'updateUserById']);
+        $router->register('DELETE', '/Users/{id}', [self::class, 'deleteUserById']);
+
+        // Batch operations
+        $router->register('POST', '/Users/Batch', [self::class, 'batchCreateUsers']);
+        $router->register('PUT', '/Users/Batch', [self::class, 'batchUpdateUsers']);
+        $router->register('DELETE', '/Users/Batch', [self::class, 'batchDeleteUsers']);
     }
 
     /** USERS */
@@ -43,37 +50,40 @@ class UserController
                 return Response::notFound("User not found");
             }
 
-            // Verify password
             if (!password_verify($password, $user['PasswordHash'])) {
                 return Response::unauthorized("Incorrect password");
             }
 
-            // Prepare response payload with new fields
             $response = [
-                'UserID' => $user['UserID'],
-                'RoleID' => $user['RoleID'],
+                'UserID'   => $user['UserID'],
+                'RoleID'   => $user['RoleID'],
                 'FullName' => $user['FullName'],
                 'Username' => $user['Username'],
-                'Email' => $user['Email']
+                'Email'    => $user['Email']
             ];
 
             return Response::success($response, "Welcome {$user['Username']}");
 
         } catch (Throwable $e) {
-            return Response::error("Login failed", 500, $e->getMessage());
+            return Response::error("Login failed", StatusCode::INTERNAL_SERVER_ERROR, $e->getMessage());
         }
     }
 
     public function getAllUsers($params) {
         try {
-            $page = isset($params['page']) ? (int)$params['page'] : 1;
+            $page  = isset($params['page']) ? (int)$params['page'] : 1;
             $limit = isset($params['limit']) ? (int)$params['limit'] : 10;
 
-            $users = $this->userModel->findAllUsers($page, $limit);
+            $result = $this->userModel->findAllUsers($page, $limit);
 
-            return Response::success($users, "Users retrieved successfully");
+            return Response::success(
+                $result['data'],
+                "Users retrieved successfully",
+                StatusCode::OK,
+                $result['pagination']
+            );
         } catch (Throwable $e) {
-            return Response::error("Failed to fetch users", 500, $e->getMessage());
+            return Response::error("Failed to fetch users", StatusCode::INTERNAL_SERVER_ERROR, $e->getMessage());
         }
     }
 
@@ -84,20 +94,17 @@ class UserController
                 ? Response::success($user, "User found")
                 : Response::notFound("User with ID $id not found");
         } catch (Throwable $e) {
-            return Response::error("Failed to fetch user", 500, $e->getMessage());
+            return Response::error("Failed to fetch user", StatusCode::INTERNAL_SERVER_ERROR, $e->getMessage());
         }
     }
 
     public function saveUser($data) {
         try {
- 
-            // Check if username already exists
             $existingUser = $this->userModel->findByUsername($data['username']);
             if ($existingUser) {
-                return Response::error("Username already taken", 409); // 409 Conflict
+                return Response::error("Username already taken", StatusCode::CONFLICT);
             }
 
-            // Hash password securely
             $data['password_hash'] = password_hash($data['password'], PASSWORD_BCRYPT);
             unset($data['password']);
 
@@ -105,60 +112,85 @@ class UserController
 
             return $result['success']
                 ? Response::success(['id' => $result['id']], "User created successfully")
-                : Response::error("User creation failed", 500, $result['error']);
-
+                : Response::error("User creation failed", StatusCode::INTERNAL_SERVER_ERROR, $result['error']);
         } catch (Throwable $e) {
-            return Response::error("Failed to create user", 500, $e->getMessage());
+            return Response::error("Failed to create user", StatusCode::INTERNAL_SERVER_ERROR, $e->getMessage());
         }
     }
 
-    public function updateUsers($data) {
+    public function updateUserById($id, $data) {
         try {
+            $result = $this->userModel->updateUser($id, $data);
+            return Response::success([], "User updated successfully");
+        } catch (Throwable $e) {
+            return Response::error("Update failed", StatusCode::INTERNAL_SERVER_ERROR, $e->getMessage());
+        }
+    }
 
-            if (isset($data['id'])) {
-                // Handle single update
-                $result = $this->userModel->updateUser($data['id'], $data);
-                return Response::success([], "User updated successfully");
+    public function deleteUserById($id) {
+        try {
+            $result = $this->userModel->deleteUser($id);
+            return Response::success([], "User deleted successfully");
+        } catch (Throwable $e) {
+            return Response::error("Delete failed", StatusCode::INTERNAL_SERVER_ERROR, $e->getMessage());
+        }
+    }
+
+
+    // BATCH APPROACH
+    public function batchCreateUsers($data) {
+        try {
+            if (!is_array($data) || empty($data)) {
+                return Response::error("Invalid batch data", StatusCode::BAD_REQUEST);
             }
 
-            if (is_array($data)) {
-                // Handle batch update
-                $results = [];
-                foreach ($data as $item) {
+            $results = [];
+            foreach ($data as $item) {
+                // Check username duplication
+                $existingUser = $this->userModel->findByUsername($item['username']);
+                if ($existingUser) {
+                    $results[] = ['success' => false, 'error' => "Username {$item['username']} already exists"];
+                    continue;
+                }
+
+                // Hash password
+                $item['password_hash'] = password_hash($item['password'], PASSWORD_BCRYPT);
+                unset($item['password']);
+
+                $results[] = $this->userModel->createUser($item);
+            }
+
+            return Response::success($results, "Batch create complete");
+        } catch (Throwable $e) {
+            return Response::error("Batch create failed", StatusCode::INTERNAL_SERVER_ERROR, $e->getMessage());
+        }
+    }
+
+    public function batchUpdateUsers($data) {
+        try {
+            $results = [];
+            foreach ($data as $item) {
+                if (isset($item['id'])) {
                     $results[] = $this->userModel->updateUser($item['id'], $item);
                 }
-                return Response::success([], "Batch Update complete");
             }
-
-            return Response::error("Invalid update data", 400);
+            return Response::success([], "Batch update complete");
         } catch (Throwable $e) {
-            return Response::error("Update failed", 500, $e->getMessage());
+            return Response::error("Batch update failed", StatusCode::INTERNAL_SERVER_ERROR, $e->getMessage());
         }
     }
 
-    public function deleteUsers($data) {
+    public function batchDeleteUsers($data) {
         try {
-            // Single delete
-            if (isset($data['id'])) {
-                $result = $this->userModel->deleteUser($data['id']);
-                return Response::success($result, "User deleted successfully");
-            }
-
-            // Batch delete
-            if (isset($data[0]['id'])) {
-                $results = [];
-                foreach ($data as $item) {
-                    if (isset($item['id'])) {
-                        $results[] = $this->userModel->deleteUser($item['id']);
-                    }
+            $results = [];
+            foreach ($data as $item) {
+                if (isset($item['id'])) {
+                    $results[] = $this->userModel->deleteUser($item['id']);
                 }
-                return Response::success([], "Batch delete complete");
             }
-
-            return Response::error("Invalid delete data", 400);
+            return Response::success([], "Batch delete complete");
         } catch (Throwable $e) {
-            return Response::error("Delete failed", 500, $e->getMessage());
+            return Response::error("Batch delete failed", StatusCode::INTERNAL_SERVER_ERROR, $e->getMessage());
         }
     }
-
 }

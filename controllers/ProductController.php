@@ -4,9 +4,10 @@ namespace Mws\Controllers;
 
 use Mws\Models\Products;
 use Mws\Helpers\Response;
+use Mws\Core\RouteControllerInterface;
 use Throwable;
 
-class ProductController
+class ProductController implements RouteControllerInterface
 {
     private Products $productModel;
 
