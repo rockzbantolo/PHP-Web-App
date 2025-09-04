@@ -7,7 +7,7 @@ use Exception;
 class Stores {
 
     // ----------------------
-    // FIND ALL STORES WITH PAGINATION
+    // FIND ALL STORES
     // ----------------------
     public function findAllStores($page = 1, $limit = 10) {
 
@@ -41,7 +41,7 @@ class Stores {
         }
         $result->free();
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
 
         // Get pagination metadata
         $pagination = $this->getPaginationInfo($page, $limit);
@@ -68,7 +68,7 @@ class Stores {
 
         $result->free();
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
 
         return $store;
     }
@@ -93,7 +93,7 @@ class Stores {
 
         $result->free();
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
 
         return $stores;
     }
@@ -118,7 +118,7 @@ class Stores {
 
         $result->free();
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
 
         return $stores;
     }
@@ -150,7 +150,7 @@ class Stores {
         $success = $stmt->execute();
         $stmt->close();
 
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
 
         return $success;
     }
@@ -190,7 +190,7 @@ class Stores {
         $stmt->execute();
         $success = $stmt->affected_rows > 0;
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
         return $success;
     }
 
@@ -229,7 +229,7 @@ class Stores {
         $success = $stmt->execute();
 
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
 
         return $success;
     }
@@ -275,7 +275,7 @@ class Stores {
         
         $result->free();
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
         
         return (int) $row['total'];
     }

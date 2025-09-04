@@ -1,40 +1,71 @@
 <?php
 namespace Mws\Core;
 
-use ReflectionClass;
-
-interface RouteControllerInterface
-{
-    public static function initRoutes($router);
-}
+use Mws\Controllers\AuthController;
+use Mws\Controllers\UserController;
+use Mws\Controllers\StoreController;
+use Mws\Controllers\RoleController;
+use Mws\Controllers\ProductController;
 
 class Routes
 {
     public static function initRoutes($router)
     {
-        $controllersPath = __DIR__ . '/../Controllers/';
+        // 🔹 AUTH ROUTE
+        self::mapRoutes($router, AuthController::class, '/Auth', [
+            ['POST', '/Login',        'login'],
+            ['POST', '/Register',     'register'],
+            ['POST', '/Logout',       'logout'],
+            ['POST', '/RefreshToken', 'refreshToken'],
+        ]);
 
-        foreach (glob($controllersPath . '*.php') as $file) {
-            $className = 'Mws\\Controllers\\' . basename($file, '.php');
+        // 🔹 STORE ROUTE
+        self::mapRoutes($router, StoreController::class, '/Stores', [
+            ['GET',    '',        'getAllStores'],
+            ['GET',    '/{id}',   'getStoreById'],
+            ['POST',   '',        'saveStore'],
+            ['PUT',    '/{id}',   'updateStore'],
+            ['DELETE', '/{id}',   'deleteStore'],
+            ['POST',   '/Batch',  'batchCreateStores'],
+            ['PUT',    '/Batch',  'batchUpdateStores'],
+            ['DELETE', '/Batch',  'batchDeleteStores'],
+        ]);
 
-            if (!class_exists($className)) {
-                error_log("Controller class $className does not exist");
-                continue;
-            }
+        // 🔹 ROLE ROUTE
+        self::mapRoutes($router, RoleController::class, '/Role', [
+            ['GET',    '',        'getAllRoles'],
+            ['GET',    '/{id}',   'getRoleById'],
+            ['POST',   '',        'saveRoles'],
+            ['PUT',    '',        'updateRoles'],
+            ['DELETE', '',        'deleteRoles'],
+        ]);
 
-            try {
-                $ref = new ReflectionClass($className);
+        // 🔹 PRODUCTS ROUTE
+        self::mapRoutes($router, ProductController::class, '/Product', [
+            ['GET',    '',        'getAllProducts'],
+            ['GET',    '/{id}',   'getProductById'],
+            ['POST',   '',        'saveProducts'],
+            ['PUT',    '/{id}',   'updateProducts'],
+            ['DELETE', '/{id}',   'deleteProducts'],
+        ]);
 
-                // Only register classes that implement RouteControllerInterface
-                if ($ref->implementsInterface(RouteControllerInterface::class)) {
-                    $className::initRoutes($router);
-                } else {
-                    error_log("Controller $className does not implement RouteControllerInterface");
-                }
+        // 🔹 USER ROUTE
+        self::mapRoutes($router, UserController::class, '/Users', [
+            ['GET',    '',        'getAllUsers'],
+            ['GET',    '/{id}',   'getUserById'],
+            ['POST',   '',        'saveUser'],
+            ['PUT',    '/{id}',   'updateUserById'],
+            ['DELETE', '/{id}',   'deleteUserById'],
+            ['POST',   '/Batch',  'batchCreateUsers'],
+            ['PUT',    '/Batch',  'batchUpdateUsers'],
+            ['DELETE', '/Batch',  'batchDeleteUsers'],
+        ]);
+    }
 
-            } catch (\Throwable $e) {
-                error_log("Failed to register routes for $className: " . $e->getMessage());
-            }
+    private static function mapRoutes($router, string $controller, string $prefix, array $routes)
+    {
+        foreach ($routes as [$method, $path, $action]) {
+            $router->register($method, $prefix . $path, [$controller, $action]);
         }
     }
 }

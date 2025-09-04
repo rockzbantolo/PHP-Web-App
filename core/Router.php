@@ -104,7 +104,7 @@ class Router {
 
         $reflectionData = $this->reflectionCache[$reflectionKey];
         if ($reflectionData === false) {
-            return Response::error("Api Handler not found", StatusCode::INTERNAL_SERVER_ERROR);
+            return Response::error("Route not found", StatusCode::INTERNAL_SERVER_ERROR);
         }
 
         try {

@@ -5,10 +5,9 @@ namespace Mws\Controllers;
 use Mws\Models\Users;
 use Mws\Helpers\Response;
 use Mws\Core\StatusCode;
-use Mws\Core\RouteControllerInterface;
 use Throwable;
 
-class UserController implements RouteControllerInterface
+class UserController 
 {
     private Users $userModel;
 
@@ -16,63 +15,11 @@ class UserController implements RouteControllerInterface
         $this->userModel = new Users();
     }
 
-    public static function initRoutes($router)
-    {
-        // Authentication
-        $router->register('POST', '/Login', [self::class, 'login']);
-
-        // User Management (single)
-        $router->register('GET', '/Users', [self::class, 'getAllUsers']);
-        $router->register('GET', '/Users/{id}', [self::class, 'getUserById']);
-        $router->register('POST', '/Users', [self::class, 'saveUser']);
-        $router->register('PUT', '/Users/{id}', [self::class, 'updateUserById']);
-        $router->register('DELETE', '/Users/{id}', [self::class, 'deleteUserById']);
-
-        // Batch operations
-        $router->register('POST', '/Users/Batch', [self::class, 'batchCreateUsers']);
-        $router->register('PUT', '/Users/Batch', [self::class, 'batchUpdateUsers']);
-        $router->register('DELETE', '/Users/Batch', [self::class, 'batchDeleteUsers']);
-    }
-
-    /** USERS */
-    public function login($data) {
+    public function getAllUsers() {
         try {
-            $username = $data['username'] ?? null;
-            $password = $data['password'] ?? null;
 
-            if (empty($username) || empty($password)) {
-                return Response::unauthorized("Invalid credentials");
-            }
-
-            $user = $this->userModel->findByUsername($username);
-
-            if (!$user) {
-                return Response::notFound("User not found");
-            }
-
-            if (!password_verify($password, $user['PasswordHash'])) {
-                return Response::unauthorized("Incorrect password");
-            }
-
-            $response = [
-                'UserID'   => $user['UserID'],
-                'RoleID'   => $user['RoleID'],
-                'FullName' => $user['FullName'],
-                'Username' => $user['Username'],
-                'Email'    => $user['Email']
-            ];
-
-            return Response::success($response, "Welcome {$user['Username']}");
-
-        } catch (Throwable $e) {
-            return Response::error("Login failed", StatusCode::INTERNAL_SERVER_ERROR, $e->getMessage());
-        }
-    }
-
-    public function getAllUsers($params) {
-        try {
-            $page  = isset($params['page']) ? (int)$params['page'] : 1;
-            $limit = isset($params['limit']) ? (int)$params['limit'] : 10;
+            $page  = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
 
             $result = $this->userModel->findAllUsers($page, $limit);
 

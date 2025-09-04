@@ -6,10 +6,16 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'Mws\\Router\\' => array($baseDir . '/../router'),
+    'Symfony\\Polyfill\\Php80\\' => array($vendorDir . '/symfony/polyfill-php80'),
+    'Symfony\\Polyfill\\Mbstring\\' => array($vendorDir . '/symfony/polyfill-mbstring'),
+    'Symfony\\Polyfill\\Ctype\\' => array($vendorDir . '/symfony/polyfill-ctype'),
+    'PhpOption\\' => array($vendorDir . '/phpoption/phpoption/src/PhpOption'),
     'Mws\\Models\\' => array($baseDir . '/../models'),
     'Mws\\Middleware\\' => array($baseDir . '/../middleware'),
     'Mws\\Helpers\\' => array($baseDir . '/../helpers'),
     'Mws\\Core\\' => array($baseDir . '/../core'),
     'Mws\\Controllers\\' => array($baseDir . '/../controllers'),
+    'GrahamCampbell\\ResultType\\' => array($vendorDir . '/graham-campbell/result-type/src'),
+    'Firebase\\JWT\\' => array($vendorDir . '/firebase/php-jwt/src'),
+    'Dotenv\\' => array($vendorDir . '/vlucas/phpdotenv/src'),
 );

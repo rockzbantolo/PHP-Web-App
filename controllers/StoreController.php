@@ -5,10 +5,9 @@ namespace Mws\Controllers;
 use Mws\Models\Stores;
 use Mws\Helpers\Response;
 use Mws\Core\StatusCode;
-use Mws\Core\RouteControllerInterface;
 use Throwable;
 
-class StoreController implements RouteControllerInterface
+class StoreController
 {
     private Stores $storeModel;
 
@@ -16,25 +15,11 @@ class StoreController implements RouteControllerInterface
         $this->storeModel = new Stores();
     }
 
-    public static function initRoutes($router)
-    {
-        // Store Management
-        $router->register('GET', '/Stores', [self::class, 'getAllStores']);
-        $router->register('GET', '/Stores/{id}', [self::class, 'getStoreById']);
-        $router->register('POST', '/Stores', [self::class, 'saveStore']);
-        $router->register('PUT', '/Stores/{id}', [self::class, 'updateStore']);
-        $router->register('DELETE', '/Stores/{id}', [self::class, 'deleteStore']);
-
-        // Batch
-        $router->register('POST', '/Stores/Batch', [self::class, 'batchCreateStores']); 
-        $router->register('PUT', '/Stores/Batch', [self::class, 'batchUpdateStores']);
-        $router->register('DELETE', '/Stores/Batch', [self::class, 'batchDeleteStores']);
-    }
-
-    public function getAllStores($params) {
+    public function getAllStores() {
         try {
-            $page  = isset($params['page']) ? (int)$params['page'] : 1;
-            $limit = isset($params['limit']) ? (int)$params['limit'] : 10;
+
+            $page  = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
 
             $result = $this->storeModel->findAllStores($page, $limit);
 

@@ -3,24 +3,14 @@ namespace Mws\Controllers;
 
 use Mws\Models\Roles;
 use Mws\Helpers\Response;
-use Mws\Core\RouteControllerInterface;
 use Throwable;
 
-class RoleController implements RouteControllerInterface
+class RoleController
 {
     private Roles $roleModel;
 
     public function __construct() {
         $this->roleModel = new Roles();
-    }
-
-    public static function initRoutes($router)
-    {
-        $router->register('GET', '/Role', [self::class, 'getAllRoles']);
-        $router->register('GET', '/Role/{id}', [self::class, 'getRoleById']);
-        $router->register('POST', '/Role', [self::class, 'saveRoles']);
-        $router->register('PUT', '/Role', [self::class, 'updateRoles']);
-        $router->register('DELETE', '/Role', [self::class, 'deleteRoles']);
     }
 
     public function getRoleById($id) {

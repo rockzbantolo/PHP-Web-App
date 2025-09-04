@@ -35,20 +35,20 @@ class Connection
         self::initConfig();
 
         // Try to get an available connection from pool
-        $connection = self::getPooledConnection();
+        $connection = self::getPooled();
         if ($connection) {
             return $connection;
         }
 
         // Create new connection if pool is not full
         if (self::$activeConnections < self::$maxConnections) {
-            return self::createNewConnection();
+            return self::createNew();
         }
 
         // Pool is full, wait for available connection
         $timeout = time() + 5; // Wait max 5 seconds
         while (time() < $timeout) {
-            $connection = self::getPooledConnection();
+            $connection = self::getPooled();
             if ($connection) {
                 return $connection;
             }
@@ -61,7 +61,7 @@ class Connection
     /**
      * Get a connection from the pool
      */
-    private static function getPooledConnection(): ?\mysqli
+    private static function getPooled(): ?\mysqli
     {
         foreach (self::$pool as $key => $poolItem) {
             if (!$poolItem['inUse'] && $poolItem['connection']->ping()) {
@@ -76,7 +76,7 @@ class Connection
     /**
      * Create a new optimized connection
      */
-    private static function createNewConnection(): \mysqli
+    private static function createNew(): \mysqli
     {
         $config = self::$config;
 
@@ -121,7 +121,7 @@ class Connection
     /**
      * Release a connection back to the pool
      */
-    public static function releaseConnection(\mysqli $conn): void
+    public static function release(\mysqli $conn): void
     {
         foreach (self::$pool as $key => $poolItem) {
             if ($poolItem['connection'] === $conn) {
@@ -189,7 +189,7 @@ class Connection
             }
             
             // Release connection back to pool after commit
-            self::releaseConnection($conn);
+            self::release($conn);
             
             return $result;
         } catch (\Exception $e) {
@@ -209,7 +209,7 @@ class Connection
             }
             
             // Release connection back to pool after rollback
-            self::releaseConnection($conn);
+            self::release($conn);
             
             return $result;
         } catch (\Exception $e) {

@@ -4,11 +4,10 @@ namespace Mws\Models;
 use Mws\Core\Connection;
 use Exception;
 
-
 class Users {
 
     // ----------------------
-    // FIND ALL USERS (with pagination)
+    // USER MANAGEMENT
     // ----------------------
     public function findAllUsers($page = 1, $limit = 10) {
         $offset = ($page - 1) * $limit;
@@ -42,7 +41,7 @@ class Users {
 
         $result->free();
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
 
         // Reuse pagination helpers
         $pagination = $this->getPaginationInfo($page, $limit);
@@ -53,7 +52,6 @@ class Users {
         ];
     }
 
-
     public function findUserById($id) {
         $conn = Connection::getInstance();
         $stmt = $conn->prepare("SELECT * FROM users WHERE UserID = ?");
@@ -61,7 +59,7 @@ class Users {
         $stmt->execute();
         $result = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
         return $result;
     }
 
@@ -74,7 +72,11 @@ class Users {
                 u.Username,
                 u.PasswordHash,
                 CONCAT(up.FirstName, ' ', up.LastName) AS FullName,
-                u.Email
+                u.Email,
+                u.FailedAttemps,
+                u.LockUntil,
+                u.IsActive,
+                u.IsOnline
             FROM users u
             LEFT JOIN userroles ur ON u.UserID = ur.UserID
             LEFT JOIN userprofiles up ON u.UserID = up.UserID
@@ -85,7 +87,7 @@ class Users {
         $stmt->execute();
         $result = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
         return $result;
     }
 
@@ -110,7 +112,7 @@ class Users {
         $stmt->execute();
         $insertId = $stmt->insert_id;
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
         return ['success' => true, 'id' => $insertId];
     }
 
@@ -157,7 +159,7 @@ class Users {
         $stmt->execute();
         $success = $stmt->affected_rows > 0;
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
         return $success;
  
     }
@@ -169,12 +171,91 @@ class Users {
         $stmt->execute();
         $success = $stmt->affected_rows > 0;
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
         return ['success' => $success];
     }
 
     // ----------------------
-    // GET TOTAL COUNT
+    // ACCOUNT LOGIN ATTEMPS
+    // ----------------------
+    public function updateLoginAttempts($userId, $failedAttempts, $lockUntil = null) {
+        $conn = Connection::getInstance();
+        $stmt = $conn->prepare("
+            UPDATE users 
+            SET FailedAttemps = ?, LockUntil = ?
+            WHERE UserID = ?
+        ");
+        $stmt->bind_param("isi", $failedAttempts, $lockUntil, $userId);
+        $stmt->execute();
+        $stmt->close();
+        Connection::release($conn);
+    }
+
+    public function resetLoginAttempts($userId) {
+        $conn = Connection::getInstance();
+        $stmt = $conn->prepare("
+            UPDATE users 
+            SET FailedAttemps = 0, LockUntil = NULL
+            WHERE UserID = ?
+        ");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $stmt->close();
+        Connection::release($conn);
+    }
+
+    // ----------------------
+    // JWT TOKEN
+    // ----------------------
+    public function storeTokens($userId, $jwt, $refreshToken, $expire) {
+        $conn = Connection::getInstance();
+        $stmt = $conn->prepare("
+            UPDATE users 
+            SET JwtToken = ?, RefreshToken = ?, TokenExpiry = FROM_UNIXTIME(?), 
+                LastLogin = NOW(), isOnline = 1
+            WHERE UserID = ?
+        ");
+        $stmt->bind_param("ssii", $jwt, $refreshToken, $expire, $userId);
+        $stmt->execute();
+        $stmt->close();
+        Connection::release($conn);
+    }
+
+    public function clearTokens($userId) {
+        $conn = Connection::getInstance();
+        $stmt = $conn->prepare("
+            UPDATE users 
+            SET JwtToken = NULL, RefreshToken = NULL, TokenExpiry = NULL, isOnline = 0, LastLogout = NOW()
+            WHERE UserID = ?
+        ");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $stmt->close();
+        Connection::release($conn);
+    }
+
+    public function findByRefreshToken($refreshToken) {
+        $conn = Connection::getInstance();
+        $stmt = $conn->prepare("SELECT * FROM users WHERE RefreshToken = ? LIMIT 1");
+        $stmt->bind_param("s", $refreshToken);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        Connection::release($conn);
+        return $result;
+    }
+
+    public function updateAccessToken($userId, $jwt, $expire) {
+        $conn = Connection::getInstance();
+        $stmt = $conn->prepare("UPDATE users SET JwtToken = ?, TokenExpiry = FROM_UNIXTIME(?) WHERE UserID = ?");
+        $stmt->bind_param("sii", $jwt, $expire, $userId);
+        $stmt->execute();
+        $stmt->close();
+        Connection::release($conn);
+    }
+
+    // ----------------------
+    // PAGINATION
     // ----------------------
     public function getTotalCount() {
         $conn = Connection::getInstance();
@@ -184,21 +265,15 @@ class Users {
         $row = $result->fetch_assoc();
         $result->free();
         $stmt->close();
-        Connection::releaseConnection($conn);
+        Connection::release($conn);
         return (int) $row['total'];
     }
 
-    // ----------------------
-    // GET TOTAL PAGES
-    // ----------------------
     public function getTotalPages($limit = 10) {
         $totalRecords = $this->getTotalCount();
         return ceil($totalRecords / $limit);
     }
 
-    // ----------------------
-    // PAGINATION INFO
-    // ----------------------
     public function getPaginationInfo($currentPage, $limit) {
         $totalRecords = $this->getTotalCount();
         $totalPages   = ceil($totalRecords / $limit);
